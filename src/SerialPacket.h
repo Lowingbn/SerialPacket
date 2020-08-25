@@ -147,7 +147,7 @@ public:
         return false;
     }
 
-    const byte Gettype() const
+    const byte GetType() const
     {
         return m_type;
     }
