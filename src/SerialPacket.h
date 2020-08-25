@@ -165,7 +165,10 @@ public:
         }
         else
         {
-            const T value = *reinterpret_cast<T*>(m_dataPtr);
+            // Requires that the type is POD.
+            T value;
+            byte* valueAsBytePtr = reinterpret_cast<byte*>(&value);
+            memcpy(valueAsBytePtr, m_dataPtr, typeSize);
             m_dataPtr += typeSize;
             return value;
         } 
