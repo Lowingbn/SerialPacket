@@ -140,6 +140,7 @@ public:
                 {
                     // Add data now read, so packet is complete
                     m_state = EReadState::ReadType;
+                    m_dataLen = (m_dataLen > MAX_DATA_SIZE ? MAX_DATA_SIZE : m_dataLen);
                     m_dataPtr = m_data;
                     return true;
                 }
