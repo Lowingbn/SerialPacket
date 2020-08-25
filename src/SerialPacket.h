@@ -7,13 +7,13 @@
 // Create a new OutPacket passing it the stream/serial port to use and
 // then simply call send passing in a type and extra data
 // 
-// OutPacket packet(Serial)
+// SerialOutPacket<16> packet(Serial)
 // packet.Send(1, 0.0f, true);
-class OutPacket
 template<const uint8_t MAX_DATA_SIZE = 16>
+class SerialOutPacket
 {
 public:
-    OutPacket(Stream &port)
+    SerialOutPacket(Stream &port)
         : port(port)
     {}
 
@@ -81,11 +81,11 @@ private:
 };
 
 // Packet class for recieving data from serial connection
-// The same InPacket can be used repeatedly.
+// The same SerialInPacket can be used repeatedly.
 // Once Available return trues the entire packet data must be read before the
 // next call to Available, as at that point the previous packet will be invalidated
-class InPacket
 template<const uint8_t MAX_DATA_SIZE = 16>
+class SerialInPacket
 {
 public:	
 	void Begin(Stream &port)
