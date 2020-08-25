@@ -2,10 +2,6 @@
 
 #include "Arduino.h"
 
-// The size of the buffer when recieving data. Set this as small as possible
-// as Arduino boards tend to have extremely limited RAM
-const uint8_t MAX_DATA_SIZE = 16;
-
 // Used for sending data.
 //
 // Create a new OutPacket passing it the stream/serial port to use and
@@ -14,6 +10,7 @@ const uint8_t MAX_DATA_SIZE = 16;
 // OutPacket packet(Serial)
 // packet.Send(1, 0.0f, true);
 class OutPacket
+template<const uint8_t MAX_DATA_SIZE = 16>
 {
 public:
     OutPacket(Stream &port)
@@ -88,6 +85,7 @@ private:
 // Once Available return trues the entire packet data must be read before the
 // next call to Available, as at that point the previous packet will be invalidated
 class InPacket
+template<const uint8_t MAX_DATA_SIZE = 16>
 {
 public:	
 	void Begin(Stream &port)
