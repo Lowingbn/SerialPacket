@@ -112,6 +112,7 @@ public:
                 if (m_dataLen == 0)
                 {
 					m_state = EReadState::ReadType;
+                    m_dataPtr = m_data;
                     return true;
                 }
                 else
@@ -139,6 +140,7 @@ public:
                 {
                     // Add data now read, so packet is complete
                     m_state = EReadState::ReadType;
+                    m_dataPtr = m_data;
                     return true;
                 }
             }
@@ -150,6 +152,22 @@ public:
     const byte GetType() const
     {
         return m_type;
+    }
+
+    template<typename T>
+    T Get()
+    {
+        constexpr const byte typeSize = sizeof(T);
+        if (m_dataPtr - m_data + typeSize > m_dataLen)
+        {
+            return T();
+        }
+        else
+        {
+            const T value = *reinterpret_cast<T*>(m_dataPtr);
+            m_dataPtr += typeSize;
+            return value;
+        } 
     }
 
 private:
@@ -167,4 +185,5 @@ private:
     byte m_dataLen;
     byte m_curDataLen;
     byte m_data[MAX_DATA_SIZE];
+    byte* m_dataPtr;
 };
