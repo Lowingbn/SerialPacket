@@ -88,10 +88,10 @@ template<const uint8_t MAX_DATA_SIZE = 16>
 class SerialInPacket
 {
 public:	
-	void Begin(Stream &port)
-	{
-		m_pPort = &port;
-	}
+    void Begin(Stream &port)
+    {
+        m_pPort = &port;
+    }
 
     bool Available()
     {
@@ -111,7 +111,7 @@ public:
 
                 if (m_dataLen == 0)
                 {
-					m_state = EReadState::ReadType;
+                    m_state = EReadState::ReadType;
                     m_dataPtr = m_data;
                     return true;
                 }
