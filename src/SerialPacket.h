@@ -19,17 +19,17 @@ public:
 
     void Send(const byte type)
     {
-        const byte dataLen = 0;
+        const uint32_t dataLen = 0;
         port.write(type);
-        port.write(dataLen);
+        port.write(reinterpret_cast<byte const *>(&dataLen), sizeof(uint32_t));
     }
 
     template<typename T>
     void Send(const byte type, const T t)
     {
-        const byte dataLen = sizeof(T);
+        const uint32_t dataLen = sizeof(T);
         port.write(type);
-        port.write(dataLen);
+        port.write(reinterpret_cast<byte const *>(&dataLen), sizeof(uint32_t));
 
         port.write(reinterpret_cast<byte const *>(&t), sizeof(T));
     }
@@ -37,11 +37,11 @@ public:
     template<typename T0, typename T1>
     void Send(const byte type, const T0 t0, const T1 t1)
     {
-        constexpr const byte dataLen = sizeof(T0) + sizeof(T1);
+        constexpr const uint32_t dataLen = sizeof(T0) + sizeof(T1);
         static_assert(dataLen <= MAX_DATA_SIZE, "Too much data for packet");
 
         port.write(type);
-        port.write(dataLen);
+        port.write(reinterpret_cast<byte const *>(&dataLen), sizeof(uint32_t));
 
         port.write(reinterpret_cast<byte const *>(&t0), sizeof(T0));
         port.write(reinterpret_cast<byte const *>(&t1), sizeof(T1));
@@ -50,11 +50,11 @@ public:
     template<typename T0, typename T1, typename T2>
     void Send(const byte type, const T0 t0, const T1 t1, const T2 t2)
     {
-        constexpr const byte dataLen = sizeof(T0) + sizeof(T1) + sizeof(T2);
+        constexpr const uint32_t dataLen = sizeof(T0) + sizeof(T1) + sizeof(T2);
         static_assert(dataLen <= MAX_DATA_SIZE, "Too much data for packet");
 
         port.write(type);
-        port.write(dataLen);
+        port.write(reinterpret_cast<byte const *>(&dataLen), sizeof(uint32_t));
 
         port.write(reinterpret_cast<byte const *>(&t0), sizeof(T0));
         port.write(reinterpret_cast<byte const *>(&t1), sizeof(T1));
@@ -64,11 +64,11 @@ public:
     template<typename T0, typename T1, typename T2, typename T3>
     void Send(const byte type, const T0 t0, const T1 t1, const T2 t2, const T3 t3)
     {
-        constexpr const byte dataLen = sizeof(T0) + sizeof(T1) + sizeof(T2) + sizeof(T3);
+        constexpr const uint32_t dataLen = sizeof(T0) + sizeof(T1) + sizeof(T2) + sizeof(T3);
         static_assert(dataLen <= MAX_DATA_SIZE, "Too much data for packet");
 
         port.write(type);
-        port.write(dataLen);
+        port.write(reinterpret_cast<byte const *>(&dataLen), sizeof(uint32_t));
 
         port.write(reinterpret_cast<byte const *>(&t0), sizeof(T0));
         port.write(reinterpret_cast<byte const *>(&t1), sizeof(T1));
@@ -103,45 +103,47 @@ public:
         PacketAvailable,  // A serial packet is available
     };
 
-    bool Available()
+    EAvailableStatus Available()
     {
-        while(m_pPort && m_pPort->available() > 0)
+        while(m_pPort && m_pPort->available() >= (m_state == EReadState::ReadDataLen ? 4 : 1))
         {
             const byte recChar = m_pPort->read();
 
             if (m_state == EReadState::ReadType)
             {
                 m_type = recChar;
+                m_curDataLen = 0;
                 if (m_type > maxCommandChar)
                 {
                     m_state = EReadState::ReadString;
+                    m_data[m_curDataLen++] = recChar;
                 }
                 else
                 {
                     m_state = EReadState::ReadDataLen;
-                    m_dataL
                 }
                 continue;
             }
             else if (m_state == EReadState::ReadDataLen)
             {
-                // Wait until a 4 byte length is available
-                if (m_pPort->available() < 4) break;
-
+                // Reconstruct 4 byte data len from recieved data
                 m_dataLen = recChar;
-                for (int i = 0; i < 3; ++i) {
-                    m_dataLen <<= 8;
-                    m_dataLen += m_pPort->read();
+                for (int i = 1; i < 4; ++i) 
+                {
+                    const byte nextChar = m_pPort->read();
+                    m_dataLen += nextChar << (8*i);
                 }
 
                 if (m_dataLen == 0)
                 {
+                    // No data - return that packet is ready
                     m_state = EReadState::ReadType;
                     m_dataPtr = m_data;
                     return EAvailableStatus::PacketAvailable;
                 }
                 else
                 {
+                    // Start reading data
                     m_curDataLen = 0;
                     m_state = EReadState::ReadData;
                     continue;
@@ -212,12 +214,12 @@ public:
         return m_type;
     }
 
-    const char* GetStr() const
+    const byte* GetData() const
     {
-        return (const char*)m_data;
+        return m_data;
     }
 
-    const int GetStrLen() const
+    const uint32_t GetDataLen() const
     {
         return m_dataLen;
     }
@@ -225,7 +227,7 @@ public:
     template<typename T>
     T Get()
     {
-        constexpr const byte typeSize = sizeof(T);
+        constexpr const uint32_t typeSize = sizeof(T);
         if (m_dataPtr - m_data + typeSize > m_dataLen)
         {
             return T();
