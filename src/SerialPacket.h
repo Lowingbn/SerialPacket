@@ -119,18 +119,26 @@ public:
                 else
                 {
                     m_state = EReadState::ReadDataLen;
+                    m_dataL
                 }
                 continue;
             }
             else if (m_state == EReadState::ReadDataLen)
             {
+                // Wait until a 4 byte length is available
+                if (m_pPort->available() < 4) break;
+
                 m_dataLen = recChar;
+                for (int i = 0; i < 3; ++i) {
+                    m_dataLen <<= 8;
+                    m_dataLen += m_pPort->read();
+                }
 
                 if (m_dataLen == 0)
                 {
                     m_state = EReadState::ReadType;
                     m_dataPtr = m_data;
-                    return true;
+                    return EAvailableStatus::PacketAvailable;
                 }
                 else
                 {
@@ -196,7 +204,7 @@ public:
             }
         }
 
-        return false;
+        return EAvailableStatus::None;
     }
 
     const byte GetType() const
